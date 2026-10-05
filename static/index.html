@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101318">
+    <meta name="description" content="A local workspace for conversations and commitments.">
+    <title>RecallRay</title>
+    <link rel="stylesheet" href="/static/app.css">
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <button class="mobile-menu icon-button" id="sidebar-toggle" type="button" aria-label="Show conversations" aria-expanded="false" aria-controls="sidebar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <a class="brand" href="#home" aria-label="RecallRay home">
+          <svg class="brand-mark" viewBox="0 0 42 42" role="img" aria-label="">
+            <circle cx="21" cy="21" r="3.5" fill="currentColor"/>
+            <path d="M14.4 14.4a9.3 9.3 0 0 0 0 13.2M27.6 14.4a9.3 9.3 0 0 1 0 13.2M9.5 9.5a16.3 16.3 0 0 0 0 23M32.5 9.5a16.3 16.3 0 0 1 0 23" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
+          </svg>
+          <span>RecallRay</span>
+        </a>
+        <div class="topbar-actions">
+          <span class="local-status"><span class="status-dot" aria-hidden="true"></span><span>Local memory</span></span>
+          <button class="button button-primary" id="listen-start" type="button">Listen</button>
+          <span class="topbar-divider" aria-hidden="true"></span>
+          <button class="icon-button settings-button" id="settings-open" type="button" aria-label="Settings" title="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1 1.1.9-1.2 2.1-1.4-.5a7.7 7.7 0 0 1-1.7 1l-.2 1.5h-2.4l-.3-1.5a7.8 7.8 0 0 1-1.8-.7l-1.2.9-1.9-1.5.7-1.4a7.5 7.5 0 0 1-.6-1.8l-1.4-.5v-2.4l1.5-.4a7 7 0 0 1 .8-1.7l-.8-1.3 1.7-1.7 1.3.8a7.5 7.5 0 0 1 1.8-.6l.5-1.5h2.4l.4 1.5a7.5 7.5 0 0 1 1.7.8l1.3-.8 1.7 1.7-.8 1.3a7.2 7.2 0 0 1 .6 1.8l1.5.4v2.4l-1.5.3a7.5 7.5 0 0 1-.8 1.3Z" transform="translate(-1 -1)"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="sidebar" id="sidebar" aria-label="Conversations">
+          <div class="sidebar-heading">
+            <h2>Conversations</h2>
+            <div class="sidebar-tools">
+              <button class="icon-button" id="search-toggle" type="button" aria-label="Search conversations" aria-expanded="false" title="Search conversations">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.4"/><path d="m16 16 4.5 4.5"/></svg>
+              </button>
+              <button class="icon-button" id="conversation-add" type="button" aria-label="Add a conversation" title="Add a conversation">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="search-wrap" id="search-wrap" hidden>
+            <label class="sr-only" for="conversation-search">Search conversations</label>
+            <input id="conversation-search" type="search" placeholder="Search conversations" autocomplete="off">
+            <button class="search-clear" id="search-clear" type="button" aria-label="Clear search">×</button>
+          </div>
+          <div class="conversation-list" id="conversation-list" aria-live="polite">
+            <div class="sidebar-loading" role="status">Loading conversations…</div>
+          </div>
+          <div class="sidebar-foot"><span class="tiny-check" aria-hidden="true">✓</span><span id="conversation-total">0 conversations</span></div>
+        </aside>
+        <button class="sidebar-scrim" id="sidebar-scrim" type="button" aria-label="Close conversations" tabindex="-1"></button>
+
+        <section class="conversation-pane" id="conversation-pane" aria-live="polite">
+          <div class="pane-loading" role="status">Opening your local workspace…</div>
+        </section>
+
+        <aside class="loops-pane" aria-labelledby="loops-heading">
+          <div class="loops-heading-row">
+            <h2 id="loops-heading">Open Loops</h2>
+          </div>
+          <div class="loop-groups" id="loop-groups" aria-live="polite"></div>
+        </aside>
+      </main>
+
+      <footer class="app-footer">
+        <span>RecallRay <span class="footer-version">v0.0.1</span></span>
+        <span class="footer-separator" aria-hidden="true">·</span>
+        <span>NVIDIA Nemotron · Nebius Token Factory</span>
+      </footer>
+    </div>
+
+    <dialog class="dialog" id="composer-dialog" aria-labelledby="composer-title">
+      <form class="dialog-content composer-form" id="composer-form">
+        <div class="dialog-heading">
+          <div><p class="dialog-kicker">NEW CONVERSATION</p><h2 id="composer-title">Add a conversation</h2></div>
+          <button class="icon-button dialog-close" type="button" data-close-dialog aria-label="Close dialog">×</button>
+        </div>
+        <p class="dialog-intro">Record or paste a conversation, then find its commitments.</p>
+        <div class="recording-controls"><button class="button button-secondary" id="record-toggle" type="button">Listen</button><span id="record-status" role="status">Microphone audio is transcribed locally.</span></div>
+        <button class="example-button" id="record-retry" type="button" hidden>Retry transcription</button>
+        <label class="field-label" for="transcript-input">Conversation text</label>
+        <textarea id="transcript-input" name="transcript" rows="6" required placeholder="Paste a conversation here…"></textarea>
+        <div class="form-meta"><span>Transcript + active loops sent to Nebius</span><span id="character-count">0</span></div>
+        <div class="example-actions" aria-label="Example text">
+          <span class="example-label">Try an example</span>
+          <button type="button" class="example-button" data-example="first">First conversation</button>
+          <button type="button" class="example-button" data-example="followup">Follow-up</button>
+        </div>
+        <p class="form-error" id="composer-error" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button class="button button-secondary" type="button" data-close-dialog>Cancel</button>
+          <button class="button button-primary" id="save-conversation" type="submit">Find commitments</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="dialog settings-dialog" id="settings-dialog" aria-labelledby="settings-title">
+      <div class="dialog-content">
+        <div class="dialog-heading">
+          <div><p class="dialog-kicker">RECALLRAY</p><h2 id="settings-title">Settings</h2></div>
+          <button class="icon-button dialog-close" type="button" data-close-dialog aria-label="Close dialog">×</button>
+        </div>
+        <div class="settings-status"><span class="settings-dot" aria-hidden="true"></span><div><strong>Local memory · Cloud reasoning</strong><p>Conversations, commitments, and evidence are stored in SQLite on this device. Audio is transcribed locally with Whisper and deleted afterward.</p></div></div>
+        <div class="settings-next"><strong>NVIDIA Nemotron · Nebius Token Factory</strong><p>Transcripts and active commitments are sent to nvidia/nemotron-3-super-120b-a12b for reasoning. Help me finish uses Tavily when current information is needed.</p></div>
+        <div class="dialog-actions"><button class="button button-primary" type="button" data-close-dialog>Done</button></div>
+      </div>
+    </dialog>
+
+    <dialog class="dialog loop-dialog" id="loop-dialog" aria-labelledby="loop-dialog-title">
+      <div class="dialog-content" id="loop-detail-content"></div>
+    </dialog>
+  </body>
+</html>

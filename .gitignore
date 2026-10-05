@@ -1,0 +1,10 @@
+/target/
+/recallray.db
+/recallray.db-shm
+/recallray.db-wal
+/artifacts/
+
+.env
+.env.*
+!.env.example
+**/recallray.db*
