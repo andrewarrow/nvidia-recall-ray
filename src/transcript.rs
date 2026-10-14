@@ -6,12 +6,20 @@ pub fn python() -> PathBuf {
     env::var_os("WHISPER_PYTHON")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
+            let local = PathBuf::from(".venv").join(if cfg!(windows) {
+                "Scripts/python.exe"
+            } else {
+                "bin/python"
+            });
+            if local.exists() {
+                return local;
+            }
             let candidate = PathBuf::from(env::var_os("HOME").unwrap_or_default())
                 .join("os/VoxCPM/.venv/bin/python");
             if candidate.exists() {
                 candidate
             } else {
-                PathBuf::from("python3")
+                PathBuf::from(if cfg!(windows) { "python" } else { "python3" })
             }
         })
 }

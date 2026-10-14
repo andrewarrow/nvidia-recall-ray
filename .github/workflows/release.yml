@@ -1,0 +1,150 @@
+name: CI and release builds
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - name: Select stable Rust
+        run: rustup default stable
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run tests
+        run: cargo test --locked
+      - name: Run Clippy
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Check browser JavaScript syntax
+        run: node --check static/app.js
+
+  build:
+    name: Build ${{ matrix.platform }}
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+    needs: checks
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-arm64
+            runner: macos-14
+            executable: target/release/recallray
+          - platform: macos-x64
+            runner: macos-15-intel
+            executable: target/release/recallray
+          - platform: linux-x64
+            runner: ubuntu-22.04
+            executable: target/release/recallray
+          - platform: windows-x64
+            runner: windows-2022
+            executable: target/release/recallray.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install stable Rust
+        run: rustup toolchain install stable --profile minimal
+      - name: Select stable Rust
+        run: rustup default stable
+      - name: Read and validate release version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(cargo metadata --locked --no-deps --format-version 1 | python -c 'import json,sys; print(next(p["version"] for p in json.load(sys.stdin)["packages"] if p["name"] == "recallray"))')"
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            tag_version="${GITHUB_REF_NAME#v}"
+            if [[ "$tag_version" != "$version" ]]; then
+              echo "Release tag v$tag_version does not match Cargo.toml version $version" >&2
+              exit 1
+            fi
+          fi
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+      - name: Build binary
+        run: cargo build --release --locked
+      - name: Package release archive
+        shell: bash
+        env:
+          PYTHON: ${{ runner.os == 'Windows' && 'python' || 'python3' }}
+        run: >-
+          "$PYTHON" scripts/package_release.py
+          --binary "${{ matrix.executable }}"
+          --platform "${{ matrix.platform }}"
+          --version "$RELEASE_VERSION"
+          --output artifacts
+      - name: Smoke test packaged application
+        shell: bash
+        env:
+          PYTHON: ${{ runner.os == 'Windows' && 'python' || 'python3' }}
+        run: |
+          set -euo pipefail
+          archive="$(find artifacts -maxdepth 1 -type f -name '*.zip' -print -quit)"
+          if [[ -z "$archive" ]]; then
+            echo "Package helper did not create a zip archive" >&2
+            exit 1
+          fi
+          "$PYTHON" scripts/smoke_release.py --archive "$archive"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: artifacts
+          merge-multiple: true
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          cat > release-notes.md <<'NOTES'
+          ## Downloads
+
+          Download the ZIP and matching `.sha256` file for your platform:
+
+          - `recallray-@VERSION@-macos-arm64.zip`
+          - `recallray-@VERSION@-macos-x64.zip`
+          - `recallray-@VERSION@-linux-x64.zip`
+          - `recallray-@VERSION@-windows-x64.zip`
+
+          Extract the ZIP, then launch with `Start RecallRay.command` on macOS,
+          `start-recallray.sh` on Linux, or `Start RecallRay.cmd` on Windows.
+          See the included `TESTING.txt` for the live evaluation steps and setup.
+
+          The evaluation uses real NVIDIA Nemotron access through Nebius. Supply
+          evaluation credentials privately when prompted or in `.env`; never
+          share a release folder after adding credentials. Text input works
+          without a microphone or transcription setup.
+
+          These binaries are unsigned. Your operating system may show a warning
+          when you launch them.
+          NOTES
+          sed -i "s/@VERSION@/$version/g" release-notes.md
+          gh release create "$GITHUB_REF_NAME" artifacts/* --repo "$GH_REPO" --verify-tag --title "$GITHUB_REF_NAME" --notes-file release-notes.md --generate-notes

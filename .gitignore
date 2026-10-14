@@ -3,6 +3,8 @@
 /recallray.db-shm
 /recallray.db-wal
 /artifacts/
+/.venv/
+**/__pycache__/
 
 .env
 .env.*

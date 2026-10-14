@@ -5,6 +5,32 @@ Browser microphone → local Whisper → NVIDIA Nemotron on Nebius Token Factory
 validated changes in SQLite. Later conversations can resolve earlier promises
 without a checkbox.
 
+## Download a test build
+
+Download the ZIP for your computer from [GitHub Releases](https://github.com/andrewarrow/nvidia-recall-ray/releases).
+Extract it into a writable folder before starting the app. Rust, Cargo, and Node
+are not required for these builds.
+
+| Download | Platform | Launcher |
+| --- | --- | --- |
+| `macos-arm64` | Apple Silicon Mac | `Start RecallRay.command` |
+| `macos-x64` | Intel Mac | `Start RecallRay.command` |
+| `windows-x64` | 64-bit Windows | `Start RecallRay.cmd` |
+| `linux-x64` | 64-bit Linux, Ubuntu 22.04 or newer | `./start-recallray.sh` |
+
+Each download includes `TESTING.txt` with setup, the demo sequence, and optional
+microphone setup. The launcher creates a local `.env` from the included template
+and helps you configure your Nebius key. Evaluation keys must be supplied through
+the private judging instructions; no credentials are included in release files.
+A Nebius key is required for live reasoning. Tavily is required for live web
+search. Pasted-text conversations work without Python or Whisper; microphone
+recording requires the optional transcription setup.
+
+These are unsigned test builds. On macOS, approve the downloaded launcher and
+binary in System Settings → Privacy & Security if prompted. If Finder does not
+recognize the launcher as executable, follow the terminal instructions in
+`TESTING.txt`. On Windows, the unsigned executable may trigger SmartScreen.
+
 ## Run
 
 Set `API_KEY` in `.env` to your Nebius Token Factory key. Add `TAVILY_KEY` (or
@@ -17,8 +43,9 @@ cargo run
 
 Opens **http://127.0.0.1:7733**. Stop with Ctrl+C. No Node build is required.
 
-Local transcription uses `faster-whisper` in `~/os/VoxCPM/.venv` when available,
-or `python3`. To use a different environment:
+Local transcription uses `faster-whisper` in a local `.venv` when available,
+then `~/os/VoxCPM/.venv`, then `python3` (`python` on Windows).
+`WHISPER_PYTHON` overrides this selection. To use a different environment:
 
 ```sh
 /path/to/python -m pip install faster-whisper
@@ -82,6 +109,10 @@ src/nebius.rs        Live Nemotron inference
 src/transcript.rs    Temporary audio and local Python subprocess
 src/tools.rs         Nemotron search decision → Tavily → grounded draft
 scripts/transcribe.py Local faster-whisper worker (embedded in binary)
+scripts/package_release.py Downloadable ZIP and checksum packaging
+scripts/smoke_release.py Packaged launcher and HTTP smoke check
+release/            Launchers for packaged binaries
+TESTING.txt         Bundled evaluation and transcription setup instructions
 static/              HTML, CSS, plain JavaScript
 ```
 
@@ -93,3 +124,24 @@ cargo test
 cargo clippy --all-targets -- -D warnings
 node --check static/app.js
 ```
+
+## Release builds
+
+GitHub Actions validates and builds macOS Apple Silicon, macOS Intel, Linux
+x64, and Windows x64. Each job starts the extracted package in a temporary
+directory and checks its local HTTP API and embedded UI without calling Nebius.
+Release ZIPs contain only the compiled app, launchers, placeholder
+configuration, testing instructions, and license. Each ZIP has a SHA-256 file.
+
+To publish a new version, update `Cargo.toml` and `Cargo.lock`, commit the changes,
+then push a matching version tag:
+
+```sh
+git tag v0.1.0
+git push origin main v0.1.0
+```
+
+The workflow checks that the tag matches the package version and publishes only
+after all platforms pass. Manual workflow runs build downloadable Actions
+artifacts without publishing a release. Use the specific release URL in
+Devpost's demo/test-build field and provide evaluation credentials privately.

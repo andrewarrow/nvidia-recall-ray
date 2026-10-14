@@ -1,6 +1,6 @@
 [package]
 name = "recallray"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2024"
 description = "A local conversation and commitment workspace"
 publish = false

@@ -1,0 +1,106 @@
+RecallRay release evaluation
+============================
+
+Choose and extract the ZIP that matches your computer:
+
+  macOS Apple silicon: recallray-<version>-macos-arm64.zip
+  macOS Intel:         recallray-<version>-macos-x64.zip
+  Linux x64:           recallray-<version>-linux-x64.zip
+  Windows x64:         recallray-<version>-windows-x64.zip
+
+Extract the ZIP into a folder you can write to, then start the app from that
+folder. Rust and a Rust toolchain are not required; the release already
+contains the application binary.
+
+  macOS: double-click “Start RecallRay.command”.
+  Linux: run ./start-recallray.sh in a terminal.
+  Windows: double-click “Start RecallRay.cmd”.
+
+The launcher creates .env from .env.example the first time it runs. RecallRay
+needs an evaluation API key supplied privately by the person or team running
+the evaluation. No service credentials are included in this release. On the
+first launch, the launcher asks for the Nebius Token Factory API_KEY with
+hidden input. That key applies only to that launch and is not saved. To save
+it between launches, open .env in a text editor, replace the
+your_nebius_token_factory_key placeholder with the supplied key, and save the
+file. Keep .env private and do not send a folder containing it to anyone.
+
+The app prints its local address, usually http://127.0.0.1:7733, and opens it
+in your browser. If it does not open automatically, copy the address into a
+browser on the same computer. Keep the terminal window open while using the
+app; press Ctrl+C there to stop it.
+
+macOS Gatekeeper
+----------------
+
+If macOS blocks the downloaded app, first try the launcher with the terminal
+fallback below from the extracted folder:
+
+  chmod +x recallray start-recallray.sh "Start RecallRay.command"
+  ./start-recallray.sh
+
+If Gatekeeper still blocks an unsigned download, open System Settings →
+Privacy & Security and use the available approval for RecallRay, then launch
+it again.
+
+Windows SmartScreen
+-------------------
+
+Windows may show a SmartScreen warning because this evaluation binary is not
+signed. Check that you have the expected release, then choose More info and
+Run anyway to continue.
+
+Live evaluation flow
+--------------------
+
+Text input works without a microphone or transcription setup. For the first
+two steps, only the supplied Nebius API key is needed. Step 3 also uses live
+Tavily search: obtain a Tavily evaluation key from the evaluation owner, then
+add it to .env as TAVILY_KEY (or TAVILY_API_KEY) and restart RecallRay.
+
+1. “I told Sarah I'd send her the article tonight. And Mike said he'd send me
+   the numbers tomorrow.” Expect Sarah Open and Mike Waiting.
+2. “Oh, I sent Sarah that article. Mike still hasn't gotten back to me.”
+   Expect Sarah Resolved and Mike still Waiting.
+3. “I told Ben I'd send him the current price of the Jetson Orin Nano.”
+   Expect Ben Open. Open that commitment and choose Help me finish. This
+   calls live Nemotron reasoning and Tavily search.
+4. “Okay, I sent that to Ben.” Expect Ben Resolved using prior conversation
+   context.
+
+Every saved conversation calls NVIDIA Nemotron through Nebius. The model can
+be uncertain; inspect its visible evidence and results. This is a live service
+evaluation, not a canned preview.
+
+Data and reset
+--------------
+
+Conversations, commitments, evidence history, and assistance runs are stored
+in recallray.db beside the application. Copies launched from the same folder
+share that data. To start a separate evaluation dataset, extract a fresh copy
+of the ZIP into a different folder.
+
+To reset an existing folder, stop RecallRay first. Move recallray.db and any
+recallray.db-shm or recallray.db-wal files beside it together to a backup
+folder. On the next launch, RecallRay creates an empty database. Do not move
+these files while RecallRay is running.
+
+Optional local transcription
+----------------------------
+
+Pasted text requires no Python, microphone, or transcription model. To enable
+microphone transcription, install Python 3.10 or newer, then create a private
+.venv in this release folder and install faster-whisper:
+
+  macOS / Linux:
+    python3 -m venv .venv
+    .venv/bin/python -m pip install faster-whisper
+
+  Windows PowerShell:
+    py -3 -m venv .venv
+    .venv\Scripts\python.exe -m pip install faster-whisper
+
+RecallRay discovers this folder's .venv. It does not install transcription
+packages at launch. The first transcription downloads the Whisper model and
+runs it locally on CPU; it may take time. Remove .venv to disable it. Browser
+microphone recording works on localhost in supported browsers.

@@ -16,8 +16,8 @@ impl Nebius {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let key =
             env::var("API_KEY").map_err(|_| "Set API_KEY in .env for Nebius Token Factory")?;
-        if key.trim().is_empty() {
-            return Err("API_KEY is empty".into());
+        if key.trim().is_empty() || key.trim() == "your_nebius_token_factory_key" {
+            return Err("Set API_KEY in .env to the Nebius evaluation key provided with your testing instructions".into());
         }
         Ok(Self {
             client: reqwest::Client::builder()
