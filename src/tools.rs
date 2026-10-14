@@ -48,11 +48,23 @@ pub async fn help(nebius: &Nebius, item: &Loop) -> Result<Value, String> {
 }
 fn current_day() -> String {
     // UTC time from the host, avoiding another dependency just for the date.
-    std::process::Command::new("date")
-        .arg("-u")
-        .arg("+%Y-%m-%d")
+    let mut command;
+    if cfg!(windows) {
+        command = std::process::Command::new("powershell.exe");
+        command.args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "[DateTime]::UtcNow.ToString('yyyy-MM-dd')",
+        ]);
+    } else {
+        command = std::process::Command::new("date");
+        command.args(["-u", "+%Y-%m-%d"]);
+    }
+    command
         .output()
         .ok()
+        .filter(|output| output.status.success())
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
         .unwrap_or_default()
 }

@@ -137,11 +137,14 @@ To publish a new version, update `Cargo.toml` and `Cargo.lock`, commit the chang
 then push a matching version tag:
 
 ```sh
-git tag v0.1.0
-git push origin main v0.1.0
+git tag v0.1.1
+git push origin main v0.1.1
 ```
 
 The workflow checks that the tag matches the package version and publishes only
 after all platforms pass. Manual workflow runs build downloadable Actions
-artifacts without publishing a release. Use the specific release URL in
-Devpost's demo/test-build field and provide evaluation credentials privately.
+artifacts by default. To publish manually, select a matching `v*` tag as the
+workflow ref and enable `publish_release`; branch refs cannot publish.
+Windows builds statically link the C runtime to avoid requiring a separate
+Visual C++ runtime installation. Use the specific release URL in Devpost's
+demo/test-build field and provide evaluation credentials privately.

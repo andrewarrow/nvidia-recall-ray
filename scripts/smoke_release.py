@@ -108,7 +108,8 @@ def main() -> int:
             "RECALLRAY_DB": str(database),
         })
         if os.name == "nt":
-            command = ["cmd.exe", "/d", "/c", f'"{launcher_name}" --no-open']
+            # CALL avoids CMD's special handling of a leading quoted filename.
+            command = ["cmd.exe", "/d", "/c", "call", launcher_name, "--no-open"]
             creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
             process = subprocess.Popen(command, cwd=package, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace", creationflags=creationflags)
         else:
